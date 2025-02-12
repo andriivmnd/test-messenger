@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Messenger</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #chat {
+            display: none;
+            margin-top: 20px;
+        }
+        #messages {
+            border: 1px solid black;
+            height: 300px;
+            width: 50%;
+            margin: 0 auto;
+            overflow-y: scroll;
+            padding: 10px;
+            text-align: left;
+        }
+        input, button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Simple WebSocket Messenger</h2>
+    <label>Username: <input type="text" id="username"></label><br>
+    <label>Chat ID: <input type="text" id="chatid"></label><br>
+    <button onclick="connect()">Connect</button>
+
+    <div id="chat">
+        <h3>Chat</h3>
+        <div id="messages"></div>
+        <input type="text" id="message" placeholder="Type a message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        let socket;
+
+        function connect() {
+            let username = document.getElementById("username").value.trim();
+            let chatid = document.getElementById("chatid").value.trim();
+
+            if (!username || !chatid) {
+                alert("Please enter username and chat ID.");
+                return;
+            }
+
+            socket = new WebSocket(`ws://${window.location.host}/ws/${chatid}/${username}`);
+
+            socket.onopen = function() {
+                document.getElementById("chat").style.display = "block";
+            };
+
+            socket.onmessage = function(event) {
+                let data = JSON.parse(event.data);
+                let messagesDiv = document.getElementById("messages");
+
+                if (data.history) {
+                    messagesDiv.innerHTML = "";
+                    data.history.forEach(msg => {
+                        messagesDiv.innerHTML += `<p><b>${msg[0]}:</b> ${msg[1]}</p>`;
+                    });
+                } else {
+                    messagesDiv.innerHTML += `<p><b>${data.username}:</b> ${data.message}</p>`;
+                }
+
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            };
+
+            socket.onclose = function() {
+                alert("Disconnected from chat.");
+            };
+        }
+
+        function sendMessage() {
+            let messageInput = document.getElementById("message");
+            if (socket && messageInput.value.trim()) {
+                socket.send(messageInput.value);
+                messageInput.value = "";
+            }
+        }
+    </script>
+</body>
+</html>
